@@ -45,8 +45,11 @@ app.get("/", function (req, res) {
           .catch((err) => console.log("there is error"));
         res.redirect("/");
       }
+      else{
 
       res.render("list", { listTitle: "Today", itemsList: found });
+
+      }
     })
     .catch((err) => console.log("there is error", err));
 });
