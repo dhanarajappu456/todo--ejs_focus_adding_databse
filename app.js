@@ -3,6 +3,7 @@ const express = require("express");
 const date = require(__dirname + "/date.js");
 const app = express();
 const mongoose = require("mongoose");
+const  _  = require("lodash");
 
 const workItems = [];
 
@@ -27,9 +28,9 @@ const listSchema = {
 
 const List = new mongoose.model("list", listSchema);
 
-app.get("/work", function (req, res) {
-  res.render("list", { listTitle: "work-List", itemsList: workItems });
-});
+// app.get("/work", function (req, res) {
+//   res.render("list", { listTitle: "work-List", itemsList: workItems });
+// });
 
 app.get("/", function (req, res) {
   let day = date.getDay();
@@ -51,45 +52,100 @@ app.get("/", function (req, res) {
 });
 
 app.get("/:listName", (req, res) => {
-  const custListName = req.params.listName;
 
-  List.findOne({ name: custListName })
-    .then((foundListObject) => {
-      if (!foundListObject) {
-        const list = new List({
-          name: custListName,
-          itemList: [item1, item2, item2],
-        });
+  
+  const custListName =  _.capitalize(req.params.listName)
+  console.log("list name:" ,req.params.listName)
+  // to avoid  the favicon request
+  if (custListName !== "Favicon.ico") {
+    List.findOne({ name: custListName })
+      .then((foundListObject) => {
+        if (!foundListObject) {
+          const list = new List({
+            name: custListName,
+            itemList: [item1, item2, item3],
+          });
 
-        list.save();
-        //redirect
-        //to this same endpoint
-        res.redirect("/" + custListName);
-      } else {
-        res.render("list", {
-          listTitle: custListName,
-          itemsList: foundListObject.itemList,
-        });
-      }
-    })
-    .catch((err) => console.log("result not found", err));
+          list.save();
+          //redirect
+          //to this same endpoint
+          res.redirect("/" + custListName);
+        } else {
+          res.render("list", {
+            listTitle: custListName,
+            itemsList: foundListObject.itemList,
+          });
+        }
+      })
+      .catch((err) => console.log("result not found", err));
+  }
 });
+//handles both today and custom list
 app.post("/", function (req, res) {
-  console.log("req.body.buttonname", req.body.buttonname);
-
+  const listName = req.body.buttonname;
   const itemName = req.body.textname;
-  const item = new Item({ name: itemName });
 
-  item.save();
-  res.redirect("/");
+  if (listName === "Today") {
+    const item = new Item({
+      name: itemName,
+    });
+
+    item.save();
+    res.redirect("/");
+  } else {
+    const listDoc = List.findOneAndUpdate(
+      { name: listName },
+      { $push: { itemList: { name: itemName } } },
+      { new: true }
+    )
+      .then((foundList) => {
+        console.log(foundList);
+        res.redirect("/" + listName);
+      })
+      .catch((err) => {
+        console.log("error...", err);
+      });
+  }
 });
 
 app.post("/delete", (req, res) => {
   const checkeItemId = req.body.checks;
-  Item.findByIdAndDelete(checkeItemId)
-    .then((res) => console.log("successfully deleted"), res)
-    .catch((err) => console.log("error occured!!"));
-  res.redirect("/");
+  const checkListName = req.body.listName;
+  console.log(
+    req.body,
+    "checkitemid",
+    checkeItemId,
+    "checklistName",
+    checkListName
+  );
+
+  //delete the doc from the item collection
+  if (checkListName === "Today") {
+    Item.findByIdAndRemove(checkeItemId)
+      .then((removed) => console.log("removed the item,", removed))
+      .catch((err) => {
+        conosle.log("error happened", err);
+      });
+
+    res.redirect("/");
+  }
+  // remove the  item from the list of the  doc  representing custom todo list
+  else {
+    List.findOneAndUpdate(
+      { name: checkListName },
+      { $pull: { itemList: { _id: checkeItemId } } }
+    )
+      .then((removed) => {
+        console.log("removed", removed, "from", "list");
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    res.redirect("/" + checkListName);
+  }
+
+  
 });
 
 app.post("/work", function (req, res) {
