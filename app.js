@@ -3,7 +3,7 @@ const express = require("express");
 const date = require(__dirname + "/date.js");
 const app = express();
 const mongoose = require("mongoose");
-const  _  = require("lodash");
+const _ = require("lodash");
 
 const workItems = [];
 
@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 //connect to db
-mongoose.connect("mongodb://127.0.0.1:27017/todolistDB");
+mongoose.connect("mongodb+srv://admin-dhanaraj:Test123@cluster0.w6qzkle.mongodb.net/todolistDB");
 //create schema then , create the model out of that schema
 const itemSchema = new mongoose.Schema({ name: String });
 const Item = mongoose.model("item", itemSchema);
@@ -52,10 +52,8 @@ app.get("/", function (req, res) {
 });
 
 app.get("/:listName", (req, res) => {
-
-  
-  const custListName =  _.capitalize(req.params.listName)
-  console.log("list name:" ,req.params.listName)
+  const custListName = _.capitalize(req.params.listName);
+  console.log("list name:", req.params.listName);
   // to avoid  the favicon request
   if (custListName !== "Favicon.ico") {
     List.findOne({ name: custListName })
@@ -144,8 +142,6 @@ app.post("/delete", (req, res) => {
 
     res.redirect("/" + checkListName);
   }
-
-  
 });
 
 app.post("/work", function (req, res) {
